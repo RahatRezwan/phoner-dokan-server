@@ -24,6 +24,28 @@ const client = new MongoClient(uri, {
    serverApi: ServerApiVersion.v1,
 });
 
+const run = async () => {
+   try {
+      const usersCollection = client.db("phonerDokan").collection("users");
+
+      /* post route for save user to database */
+      app.post("/users", async (req, res) => {
+         const user = req.body;
+         const result = await usersCollection.insertOne(user);
+         res.send(result);
+      });
+
+      /* get route for get all the users */
+      app.get("/users", async (req, res) => {
+         const query = {};
+         const users = await usersCollection.find(query).toArray();
+         res.send(users);
+      });
+   } finally {
+   }
+};
+run().catch((err) => console.log(err));
+
 app.listen(port, () => {
    console.log(`Phoner dokan server is running on port : ${port}`);
 });
