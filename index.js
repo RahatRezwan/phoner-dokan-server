@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -27,6 +27,7 @@ const client = new MongoClient(uri, {
 const run = async () => {
    try {
       const usersCollection = client.db("phonerDokan").collection("users");
+      const categoriesCollection = client.db("phonerDokan").collection("categories");
 
       /* post route for save user to database */
       app.post("/users", async (req, res) => {
@@ -40,6 +41,41 @@ const run = async () => {
          const query = {};
          const users = await usersCollection.find(query).toArray();
          res.send(users);
+      });
+
+      /* get route for get all the seller */
+      app.get("/sellers", async (req, res) => {
+         const query = { role: "Seller" };
+         const users = await usersCollection.find(query).toArray();
+         res.send(users);
+      });
+
+      /* verify seller */
+      app.put("/sellers/:id", async (req, res) => {
+         const id = req.params.id;
+         const query = { _id: ObjectId(id) };
+         const options = { upsert: true };
+         const updateDoc = {
+            $set: {
+               verified: true,
+            },
+         };
+         const result = await usersCollection.updateOne(query, updateDoc, options);
+         res.send(result);
+      });
+
+      /* Create Category route */
+      app.post("/categories", async (req, res) => {
+         const category = req.body;
+         const result = await categoriesCollection.insertOne(category);
+         res.send(result);
+      });
+
+      /* display all category route */
+      app.get("/categories", async (req, res) => {
+         const query = {};
+         const categories = await categoriesCollection.find(query).toArray();
+         res.send(categories);
       });
    } finally {
    }
