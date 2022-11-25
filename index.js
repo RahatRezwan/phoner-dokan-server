@@ -28,6 +28,7 @@ const run = async () => {
    try {
       const usersCollection = client.db("phonerDokan").collection("users");
       const categoriesCollection = client.db("phonerDokan").collection("categories");
+      const productsCollection = client.db("phonerDokan").collection("products");
 
       /* post route for save user to database */
       app.post("/users", async (req, res) => {
@@ -76,6 +77,12 @@ const run = async () => {
          const query = {};
          const categories = await categoriesCollection.find(query).toArray();
          res.send(categories);
+      });
+
+      /* route for create products collection */
+      app.post("/products", async (req, res) => {
+         const product = req.body;
+         const result = await productsCollection.insertOne(product);
       });
    } finally {
    }
