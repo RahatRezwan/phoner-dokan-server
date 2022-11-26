@@ -72,6 +72,22 @@ const run = async () => {
          res.send(users);
       });
 
+      /* get admin from all users */
+      app.get("/users/admin/:email", async (req, res) => {
+         const email = req.params.email;
+         const query = { email: email };
+         const user = await usersCollection.findOne(query);
+         res.send({ isAdmin: user?.role === "Admin" });
+      });
+
+      /* get single seller from all users */
+      app.get("/users/seller/:email", async (req, res) => {
+         const email = req.params.email;
+         const query = { email: email };
+         const user = await usersCollection.findOne(query);
+         res.send({ isSeller: user?.role === "Seller" });
+      });
+
       /* get route for get all the buyers */
       app.get("/buyers", verifyJWT, async (req, res) => {
          const query = { role: "Buyer" };
