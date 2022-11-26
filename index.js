@@ -158,6 +158,20 @@ const run = async () => {
          res.send(result);
       });
 
+      /* route to get all the products */
+      app.get("/products", async (req, res) => {
+         const query = {};
+         const result = await productsCollection.find(query).toArray();
+         res.send(result);
+      });
+
+      /* get products by seller email */
+      app.get("/products/:email", async (req, res) => {
+         const email = req.params.email;
+         const products = await productsCollection.find({ sellerEmail: email }).toArray();
+         res.send(products);
+      });
+
       /* show products by category id */
       app.get("/categories/:id", async (req, res) => {
          const id = req.params.id;
