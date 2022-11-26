@@ -1,5 +1,6 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -30,6 +31,17 @@ const run = async () => {
       const categoriesCollection = client.db("phonerDokan").collection("categories");
       const productsCollection = client.db("phonerDokan").collection("products");
 
+      /* get jwt token route */
+      app.get("/jwt", async (req, res) => {
+         const email = req.query.email;
+         const user = await usersCollection.findOne({ email: email });
+         if (user) {
+            const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: "2d" });
+            return res.send({ accessToken: token });
+         }
+         res.status(403).send({ message: "Unauthorized Access" });
+      });
+
       /* post route for save user to database */
       app.post("/users", async (req, res) => {
          const user = req.body;
@@ -42,6 +54,13 @@ const run = async () => {
          const query = {};
          const users = await usersCollection.find(query).toArray();
          res.send(users);
+      });
+
+      /* get route for get all the buyers */
+      app.get("/buyers", async (req, res) => {
+         const query = { role: "Buyer" };
+         const buyers = await usersCollection.find(query).toArray();
+         res.send(buyers);
       });
 
       /* get route for get all the seller */
@@ -83,6 +102,7 @@ const run = async () => {
       app.post("/products", async (req, res) => {
          const product = req.body;
          const result = await productsCollection.insertOne(product);
+         res.send(result);
       });
    } finally {
    }
