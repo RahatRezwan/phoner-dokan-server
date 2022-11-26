@@ -25,6 +25,22 @@ const client = new MongoClient(uri, {
    serverApi: ServerApiVersion.v1,
 });
 
+/* Verify Access Token */
+const verifyJWT = (req, res, next) => {
+   const authHeader = req.headers.authorization;
+   if (!authHeader) {
+      return res.status(401).send("Unauthorized Accessed");
+   }
+   const token = authHeader.split(" ")[1];
+   jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+      if (err) {
+         return res.status(403).send("Forbidden Access");
+      }
+      req.decoded = decoded;
+      next();
+   });
+};
+
 const run = async () => {
    try {
       const usersCollection = client.db("phonerDokan").collection("users");
@@ -57,21 +73,21 @@ const run = async () => {
       });
 
       /* get route for get all the buyers */
-      app.get("/buyers", async (req, res) => {
+      app.get("/buyers", verifyJWT, async (req, res) => {
          const query = { role: "Buyer" };
          const buyers = await usersCollection.find(query).toArray();
          res.send(buyers);
       });
 
       /* get route for get all the seller */
-      app.get("/sellers", async (req, res) => {
+      app.get("/sellers", verifyJWT, async (req, res) => {
          const query = { role: "Seller" };
          const users = await usersCollection.find(query).toArray();
          res.send(users);
       });
 
       /* verify seller */
-      app.put("/sellers/:id", async (req, res) => {
+      app.put("/sellers/:id", verifyJWT, async (req, res) => {
          const id = req.params.id;
          const query = { _id: ObjectId(id) };
          const options = { upsert: true };
@@ -85,7 +101,7 @@ const run = async () => {
       });
 
       /* Create Category route */
-      app.post("/categories", async (req, res) => {
+      app.post("/categories", verifyJWT, async (req, res) => {
          const category = req.body;
          const result = await categoriesCollection.insertOne(category);
          res.send(result);
@@ -99,7 +115,7 @@ const run = async () => {
       });
 
       /* route for create products collection */
-      app.post("/products", async (req, res) => {
+      app.post("/products", verifyJWT, async (req, res) => {
          const product = req.body;
          const result = await productsCollection.insertOne(product);
          res.send(result);
