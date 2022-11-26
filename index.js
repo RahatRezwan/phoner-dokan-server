@@ -47,6 +47,27 @@ const run = async () => {
       const categoriesCollection = client.db("phonerDokan").collection("categories");
       const productsCollection = client.db("phonerDokan").collection("products");
 
+      /* make sure run verify admin after jwt */
+      const verifyAdmin = async (req, res, next) => {
+         const decodedEmail = req.decoded.email;
+         const query = { email: decodedEmail };
+         const user = await usersCollection.findOne(query);
+         if (user.role !== "Admin") {
+            return res.status(403).send({ message: "Forbidden Access" });
+         }
+         next();
+      };
+
+      /* make sure run verify admin after jwt */
+      const verifySeller = async (req, res, next) => {
+         const decodedEmail = req.decoded.email;
+         const query = { email: decodedEmail };
+         const user = await usersCollection.findOne(query);
+         if (user.role !== "Seller") {
+            return res.status(403).send({ message: "Forbidden Access" });
+         }
+         next();
+      };
       /* get jwt token route */
       app.get("/jwt", async (req, res) => {
          const email = req.query.email;
@@ -89,21 +110,21 @@ const run = async () => {
       });
 
       /* get route for get all the buyers */
-      app.get("/buyers", verifyJWT, async (req, res) => {
+      app.get("/buyers", verifyJWT, verifyAdmin, async (req, res) => {
          const query = { role: "Buyer" };
          const buyers = await usersCollection.find(query).toArray();
          res.send(buyers);
       });
 
       /* get route for get all the seller */
-      app.get("/sellers", verifyJWT, async (req, res) => {
+      app.get("/sellers", verifyJWT, verifyAdmin, async (req, res) => {
          const query = { role: "Seller" };
          const users = await usersCollection.find(query).toArray();
          res.send(users);
       });
 
       /* verify seller */
-      app.put("/sellers/:id", verifyJWT, async (req, res) => {
+      app.put("/sellers/:id", verifyJWT, verifyAdmin, async (req, res) => {
          const id = req.params.id;
          const query = { _id: ObjectId(id) };
          const options = { upsert: true };
@@ -117,7 +138,7 @@ const run = async () => {
       });
 
       /* Create Category route */
-      app.post("/categories", verifyJWT, async (req, res) => {
+      app.post("/categories", verifyJWT, verifyAdmin, async (req, res) => {
          const category = req.body;
          const result = await categoriesCollection.insertOne(category);
          res.send(result);
@@ -131,7 +152,7 @@ const run = async () => {
       });
 
       /* route for create products collection */
-      app.post("/products", verifyJWT, async (req, res) => {
+      app.post("/products", verifyJWT, verifySeller, async (req, res) => {
          const product = req.body;
          const result = await productsCollection.insertOne(product);
          res.send(result);
