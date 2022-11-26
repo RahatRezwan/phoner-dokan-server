@@ -146,8 +146,9 @@ const run = async () => {
 
       /* display all category route */
       app.get("/categories", async (req, res) => {
+         const limit = parseInt(req.query.limit);
          const query = {};
-         const categories = await categoriesCollection.find(query).toArray();
+         const categories = await categoriesCollection.find(query).limit(limit).toArray();
          res.send(categories);
       });
 
@@ -166,7 +167,7 @@ const run = async () => {
       });
 
       /* get products by seller email */
-      app.get("/products/:email", async (req, res) => {
+      app.get("/products/:email", verifyJWT, verifySeller, async (req, res) => {
          const email = req.params.email;
          const products = await productsCollection.find({ sellerEmail: email }).toArray();
          res.send(products);
