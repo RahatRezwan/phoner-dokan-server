@@ -87,14 +87,14 @@ const run = async () => {
       });
 
       /* get route for get all the users */
-      app.get("/users", async (req, res) => {
+      app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
          const query = {};
          const users = await usersCollection.find(query).toArray();
          res.send(users);
       });
 
       /* get admin from all users */
-      app.get("/users/admin/:email", async (req, res) => {
+      app.get("/users/admin/:email", verifyJWT, async (req, res) => {
          const email = req.params.email;
          const query = { email: email };
          const user = await usersCollection.findOne(query);
@@ -102,11 +102,11 @@ const run = async () => {
       });
 
       /* get single seller from all users */
-      app.get("/users/seller/:email", async (req, res) => {
+      app.get("/users/seller/:email", verifyJWT, async (req, res) => {
          const email = req.params.email;
          const query = { email: email };
          const user = await usersCollection.findOne(query);
-         res.send({ isSeller: user?.role === "Seller" });
+         res.send({ isSeller: user?.role === "Seller", seller: user });
       });
 
       /* get route for get all the buyers */
@@ -156,6 +156,16 @@ const run = async () => {
          const product = req.body;
          const result = await productsCollection.insertOne(product);
          res.send(result);
+      });
+
+      /* show products by category id */
+      app.get("/categories/:id", async (req, res) => {
+         const id = req.params.id;
+         const filterCategory = { _id: ObjectId(id) };
+         const category = await categoriesCollection.findOne(filterCategory);
+         const products = await productsCollection.find({}).toArray();
+         const matchedProducts = products.filter((product) => product.category === category.name);
+         res.send(matchedProducts);
       });
    } finally {
    }
