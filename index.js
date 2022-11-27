@@ -2,6 +2,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const { query } = require("express");
 require("dotenv").config();
 
 const port = process.env.PORT || 5000;
@@ -170,8 +171,26 @@ const run = async () => {
       /* get products by seller email */
       app.get("/products/:email", verifyJWT, verifySeller, async (req, res) => {
          const email = req.params.email;
-         const products = await productsCollection.find({ sellerEmail: email }).toArray();
+         const query = { sellerEmail: email };
+         const options = {
+            sort: { data: -1 },
+         };
+         const products = await productsCollection.find(query, options).toArray();
          res.send(products);
+      });
+
+      /* advertise product */
+      app.put("/products/:id", verifyJWT, verifySeller, async (req, res) => {
+         const id = req.params.id;
+         const query = { _id: ObjectId(id) };
+         const options = { upsert: true };
+         const updateDoc = {
+            $set: {
+               advertise: true,
+            },
+         };
+         const result = await productsCollection.updateOne(query, updateDoc, options);
+         res.send(result);
       });
 
       /* show products by category id */
@@ -182,13 +201,6 @@ const run = async () => {
          const products = await productsCollection.find({}).toArray();
          const matchedProducts = products.filter((product) => product.category === category.name);
          res.send(matchedProducts);
-      });
-
-      /* route to create advertisements collection */
-      app.post("/advertisements", verifyJWT, verifySeller, async (req, res) => {
-         const item = req.body;
-         const result = await advertisementsCollection.insertOne(item);
-         res.send(result);
       });
    } finally {
    }
