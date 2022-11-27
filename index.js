@@ -214,10 +214,18 @@ const run = async () => {
       });
 
       /* Create Route for booking Products */
-      app.post("/bookItem", async (req, res) => {
+      app.post("/bookItem", verifyJWT, async (req, res) => {
          const item = req.body;
          const result = await bookingsCollection.insertOne(item);
          res.send(result);
+      });
+
+      /* get booked item by user email */
+      app.get("/bookItems/:email", async (req, res) => {
+         const email = req.params.email;
+         const query = { customerEmail: email };
+         const items = await bookingsCollection.find(query).toArray();
+         res.send(items);
       });
    } finally {
    }
