@@ -47,7 +47,7 @@ const run = async () => {
       const usersCollection = client.db("phonerDokan").collection("users");
       const categoriesCollection = client.db("phonerDokan").collection("categories");
       const productsCollection = client.db("phonerDokan").collection("products");
-      const advertisementsCollection = client.db("phonerDokan").collection("advertisements");
+      const bookingsCollection = client.db("phonerDokan").collection("bookings");
 
       /* make sure run verify admin after jwt */
       const verifyAdmin = async (req, res, next) => {
@@ -211,6 +211,13 @@ const run = async () => {
          const products = await productsCollection.find({}).toArray();
          const matchedProducts = products.filter((product) => product.category === category.name);
          res.send(matchedProducts);
+      });
+
+      /* Create Route for booking Products */
+      app.post("/bookItem", async (req, res) => {
+         const item = req.body;
+         const result = await bookingsCollection.insertOne(item);
+         res.send(result);
       });
    } finally {
    }
