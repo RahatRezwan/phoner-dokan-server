@@ -193,6 +193,16 @@ const run = async () => {
          res.send(result);
       });
 
+      /* get advertised products from all products */
+      app.get("/advertisedProducts", async (req, res) => {
+         const query = { advertise: true, quantity: 1 };
+         const options = {
+            sort: { data: -1 },
+         };
+         const result = await productsCollection.find(query, options).toArray();
+         res.send(result);
+      });
+
       /* show products by category id */
       app.get("/categories/:id", async (req, res) => {
          const id = req.params.id;
