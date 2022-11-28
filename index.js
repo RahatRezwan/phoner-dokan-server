@@ -340,8 +340,17 @@ const run = async () => {
       });
 
       app.get("/blogs", async (req, res) => {
+         const limit = parseInt(req.query.limit);
          const query = {};
-         const result = await blogsCollection.find(query).toArray();
+         const result = await blogsCollection.find(query).limit(limit).toArray();
+         res.send(result);
+      });
+
+      /* user delete function */
+      app.delete("/deleteUser/:id", verifyJWT, verifyAdmin, async (req, res) => {
+         const id = req.params.id;
+         const filterUser = { _id: ObjectId(id) };
+         const result = await usersCollection.deleteOne(filterUser);
          res.send(result);
       });
    } finally {
