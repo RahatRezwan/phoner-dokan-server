@@ -45,8 +45,10 @@ const verifyJWT = (req, res, next) => {
 const run = async () => {
    try {
       const usersCollection = client.db("phonerDokan").collection("users");
+      const blogsCollection = client.db("phonerDokan").collection("blogs");
       const categoriesCollection = client.db("phonerDokan").collection("categories");
       const productsCollection = client.db("phonerDokan").collection("products");
+      const wishlistsCollection = client.db("phonerDokan").collection("wishlists");
       const bookingsCollection = client.db("phonerDokan").collection("bookings");
       const paymentsCollection = client.db("phonerDokan").collection("payments");
 
@@ -99,6 +101,10 @@ const run = async () => {
       /* post route for save user to database */
       app.post("/users", async (req, res) => {
          const user = req.body;
+         const matched = await usersCollection.findOne({ email: user.email });
+         if (matched) {
+            return res.send({ acknowledged: false });
+         }
          const result = await usersCollection.insertOne(user);
          res.send(result);
       });
@@ -208,6 +214,51 @@ const run = async () => {
          res.send(result);
       });
 
+      /* Add to wishlist */
+      app.post("/add-to-wishlist", verifyJWT, async (req, res) => {
+         const wishlist = req.body;
+         const queryCustomer = {
+            userEmail: wishlist.userEmail,
+            productId: wishlist.productId,
+         };
+         const customerWishlist = await wishlistsCollection.find(queryCustomer).toArray();
+         if (customerWishlist.length) {
+            const message = `Sorry! You have already add ${wishlist.productName} to your wishList`;
+            return res.send({ acknowledged: false, message });
+         }
+         const result = await wishlistsCollection.insertOne(wishlist);
+         res.send(result);
+      });
+
+      /* get wishlist by email */
+      app.get("/wishList/:email", verifyJWT, async (req, res) => {
+         const email = req.params.email;
+         const query = { userEmail: email };
+         const result = await wishlistsCollection.find(query).toArray();
+         res.send(result);
+      });
+
+      /* Route to report product */
+      app.put("/report-product/:id", async (req, res) => {
+         const id = req.params.id;
+         const filter = { _id: ObjectId(id) };
+         const options = { upsert: true };
+         const updateDoc = {
+            $set: {
+               reported: true,
+            },
+         };
+         const result = await productsCollection.updateOne(filter, updateDoc, options);
+         res.send(result);
+      });
+
+      /* get reported items */
+      app.get("/reported-items", verifyJWT, verifyAdmin, async (req, res) => {
+         const query = { reported: true };
+         const result = await productsCollection.find(query).toArray();
+         res.send(result);
+      });
+
       /* get advertised products from all products */
       app.get("/advertisedProducts", async (req, res) => {
          const query = { advertise: true, quantity: 1 };
@@ -266,6 +317,7 @@ const run = async () => {
          const updateBooking = {
             $set: {
                paymentStatus: "Paid",
+               transactionId: payment.transactionId,
             },
          };
          const updateProductInBooking = {
@@ -277,6 +329,19 @@ const run = async () => {
          await bookingsCollection.updateOne(booking, updateBooking);
          await bookingsCollection.updateMany(productInBooking, updateProductInBooking);
          const result = await paymentsCollection.insertOne(payment);
+         res.send(result);
+      });
+
+      /* create blog */
+      app.post("/blogs", verifyJWT, verifyAdmin, async (req, res) => {
+         const blog = req.body;
+         const result = await blogsCollection.insertOne(blog);
+         res.send(result);
+      });
+
+      app.get("/blogs", async (req, res) => {
+         const query = {};
+         const result = await blogsCollection.find(query).toArray();
          res.send(result);
       });
    } finally {
