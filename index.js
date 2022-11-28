@@ -2,7 +2,6 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
-const { query } = require("express");
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
@@ -49,6 +48,7 @@ const run = async () => {
       const categoriesCollection = client.db("phonerDokan").collection("categories");
       const productsCollection = client.db("phonerDokan").collection("products");
       const bookingsCollection = client.db("phonerDokan").collection("bookings");
+      const paymentsCollection = client.db("phonerDokan").collection("payments");
 
       /* make sure run verify admin after jwt */
       const verifyAdmin = async (req, res, next) => {
@@ -72,11 +72,11 @@ const run = async () => {
          next();
       };
 
-      app.post("/create-payment-intent", async (req, res) => {
+      app.post("/create-payment-intent", verifyJWT, async (req, res) => {
          const product = req.body;
-         const price = product.price;
+         const price = parseFloat(product.productPrice);
          const amount = price * 100;
-         const pymentIntent = await stripe.paymentIntents.create({
+         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
             currency: "usd",
             payment_method_types: ["card"],
@@ -231,6 +231,15 @@ const run = async () => {
       /* Create Route for booking Products */
       app.post("/bookItem", verifyJWT, async (req, res) => {
          const item = req.body;
+         const queryCustomer = {
+            customerEmail: item.customerEmail,
+            productId: item.productId,
+         };
+         const customerBookings = await bookingsCollection.find(queryCustomer).toArray();
+         if (customerBookings.length) {
+            const message = `You have already booked ${item.productName}`;
+            return res.send({ acknowledged: false, message });
+         }
          const result = await bookingsCollection.insertOne(item);
          res.send(result);
       });
@@ -241,6 +250,34 @@ const run = async () => {
          const query = { customerEmail: email };
          const items = await bookingsCollection.find(query).toArray();
          res.send(items);
+      });
+
+      /* store payment data */
+      app.post("/payments", async (req, res) => {
+         const payment = req.body;
+         const filterProduct = { _id: ObjectId(payment.productId) };
+         const booking = { _id: ObjectId(payment.bookingId) };
+         const productInBooking = { productId: payment.productId };
+         const updateProduct = {
+            $set: {
+               quantity: 0,
+            },
+         };
+         const updateBooking = {
+            $set: {
+               paymentStatus: "Paid",
+            },
+         };
+         const updateProductInBooking = {
+            $set: {
+               productQuantity: 0,
+            },
+         };
+         await productsCollection.updateOne(filterProduct, updateProduct);
+         await bookingsCollection.updateOne(booking, updateBooking);
+         await bookingsCollection.updateMany(productInBooking, updateProductInBooking);
+         const result = await paymentsCollection.insertOne(payment);
+         res.send(result);
       });
    } finally {
    }
