@@ -355,7 +355,7 @@ const run = async () => {
       });
 
       /* delete reported product */
-      app.delete("/deleteproduct/:id".verifyJWT, verifyAdmin, async (req, res) => {
+      app.delete("/deleteproduct/:id", verifyJWT, verifyAdmin, async (req, res) => {
          const id = req.params.id;
          const query = { _id: ObjectId(id) };
          const result = await productsCollection.deleteOne(query);
